@@ -1,5 +1,5 @@
 import XCTest
-@testable import SpotifyTray
+@testable import Spotlightify
 
 final class PKCETests: XCTestCase {
     func testGeneratedPKCEVerifierAndChallengeArePopulated() {

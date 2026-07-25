@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SpotifyTrayApp: App {
+struct SpotlightifyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

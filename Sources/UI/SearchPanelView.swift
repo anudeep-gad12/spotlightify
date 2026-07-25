@@ -107,20 +107,22 @@ struct SearchPanelView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .center, spacing: 10) {
+                HStack(alignment: .center, spacing: 8) {
                     Image("LogoMark")
                         .resizable()
                         .interpolation(.high)
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 26, height: 26)
                         .accessibilityHidden(true)
 
-                    Text("SpotifyTray")
-                        .font(.system(size: 24, weight: .semibold, design: .default))
+                    Text("Spotlightify")
+                        .font(.system(size: 22, weight: .semibold, design: .default))
                         .foregroundStyle(Color.ink)
                         .tracking(-0.45)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
 
                 Text(headerSubtitle)
@@ -128,19 +130,20 @@ struct SearchPanelView: View {
                     .foregroundStyle(Color.inkMuted)
                     .lineLimit(2)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .overlay {
                 WindowDragRegion()
             }
-            .help("Drag to move SpotifyTray")
+            .help("Drag to move Spotlightify")
 
-            Spacer()
-
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 openSpotifyButton
 
                 appearanceMenu
 
-                compactPill("Cmd+Shift+Space")
+                compactPill("⌘⇧Space")
+                    .help("Cmd+Shift+Space")
+                    .accessibilityLabel("Cmd+Shift+Space")
 
                 HStack(spacing: 6) {
                     Circle()
@@ -149,9 +152,11 @@ struct SearchPanelView: View {
 
                     Text(statusLabel)
                         .font(.system(size: 12, weight: .medium))
+                        .lineLimit(1)
                 }
                 .foregroundStyle(Color.inkMuted)
             }
+            .fixedSize(horizontal: true, vertical: false)
         }
     }
 
@@ -206,10 +211,12 @@ struct SearchPanelView: View {
 
                 Text("Open Spotify")
                     .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
             }
             .foregroundStyle(Color.inkMuted)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
+            .fixedSize(horizontal: true, vertical: false)
             .background(
                 Capsule(style: .continuous)
                     .fill(Color.overlayInk.opacity(0.045))
@@ -1139,6 +1146,8 @@ struct SearchPanelView: View {
         Text(text)
             .font(.system(size: 12, weight: .medium, design: .monospaced))
             .foregroundStyle(Color.inkMuted)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
     }
 
     private func keyboardHint(_ key: String, _ label: String) -> some View {

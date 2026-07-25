@@ -3,7 +3,7 @@ import Foundation
 final class AppLogger: @unchecked Sendable {
     static let shared = AppLogger()
 
-    private let queue = DispatchQueue(label: "app.spotifytray.logger")
+    private let queue = DispatchQueue(label: "app.spotlightify.logger")
     private let timestampFormatter = ISO8601DateFormatter()
     private var fileURL: URL?
 
@@ -21,7 +21,7 @@ final class AppLogger: @unchecked Sendable {
                 attributes: nil
             )
 
-            let header = "\n=== SpotifyTray launch \(timestampFormatter.string(from: Date())) ===\n"
+            let header = "\n=== Spotlightify launch \(timestampFormatter.string(from: Date())) ===\n"
             append(header, to: logFileURL)
         }
     }
@@ -58,7 +58,7 @@ final class AppLogger: @unchecked Sendable {
             try handle.write(contentsOf: data)
             try handle.close()
         } catch {
-            fputs("SpotifyTray logger write failed: \(error)\n", stderr)
+            fputs("Spotlightify logger write failed: \(error)\n", stderr)
         }
     }
 }

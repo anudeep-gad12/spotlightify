@@ -1,5 +1,5 @@
 import XCTest
-@testable import SpotifyTray
+@testable import Spotlightify
 
 @MainActor
 final class PlaybackCoordinatorTests: XCTestCase {
@@ -26,7 +26,7 @@ final class PlaybackCoordinatorTests: XCTestCase {
     }
 
     func testResolvePlaybackDeviceRejectsRestrictedDevices() async throws {
-        let configuration = AppConfiguration(bundledSpotifyClientID: "test", callbackScheme: "spotifytray")
+        let configuration = AppConfiguration(bundledSpotifyClientID: "test", callbackScheme: "spotlightify")
         let keychain = KeychainStore(service: "mock")
         let authManager = SpotifyAuthManager(
             configuration: configuration,
@@ -49,7 +49,7 @@ final class PlaybackCoordinatorTests: XCTestCase {
     }
 
     func testResolvePlaybackDeviceUsesCurrentComputerWhenDevicesListIsEmpty() async throws {
-        let configuration = AppConfiguration(bundledSpotifyClientID: "test", callbackScheme: "spotifytray")
+        let configuration = AppConfiguration(bundledSpotifyClientID: "test", callbackScheme: "spotlightify")
         let keychain = KeychainStore(service: "mock")
         let authManager = SpotifyAuthManager(
             configuration: configuration,

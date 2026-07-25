@@ -15,7 +15,7 @@ struct AppConfiguration {
 
     init(
         bundledSpotifyClientID: String = "",
-        callbackScheme: String = "spotifytray",
+        callbackScheme: String = "spotlightify",
         oauthRedirectHost: String = "127.0.0.1",
         oauthRedirectPort: UInt16 = 43821,
         appSupportDirectory: URL = FileManager.default.temporaryDirectory,
@@ -33,8 +33,8 @@ struct AppConfiguration {
 
     static func load(bundle: Bundle = .main, fileManager: FileManager = .default) -> AppConfiguration {
         let clientID = (bundle.object(forInfoDictionaryKey: "SpotifyClientID") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let callbackScheme = (bundle.object(forInfoDictionaryKey: "SpotifyCallbackScheme") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "spotifytray"
-        let appName = (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "SpotifyTray"
+        let callbackScheme = (bundle.object(forInfoDictionaryKey: "SpotifyCallbackScheme") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "spotlightify"
+        let appName = (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Spotlightify"
         let appSupportDirectory = (try? fileManager.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,

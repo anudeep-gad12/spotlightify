@@ -1,4 +1,4 @@
-name: SpotifyTray
+name: Spotlightify
 options:
   minimumXcodeGenVersion: 2.43.0
   developmentLanguage: en
@@ -7,7 +7,7 @@ configs:
   Release: release
 settings:
   base:
-    PRODUCT_NAME: SpotifyTray
+    PRODUCT_NAME: Spotlightify
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: 14.0
 packages:
@@ -15,7 +15,7 @@ packages:
     url: https://github.com/sparkle-project/Sparkle
     from: 2.6.0
 targets:
-  SpotifyTray:
+  Spotlightify:
     type: application
     platform: macOS
     deploymentTarget: "14.0"
@@ -24,12 +24,12 @@ targets:
       Release: Config/Release.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.spotifytray
-        INFOPLIST_FILE: SpotifyTray/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: app.spotlightify
+        INFOPLIST_FILE: Spotlightify/Info.plist
         CURRENT_PROJECT_VERSION: 1
         MARKETING_VERSION: 1.0
         ENABLE_HARDENED_RUNTIME: YES
-        CODE_SIGN_ENTITLEMENTS: SpotifyTray/SpotifyTray.entitlements
+        CODE_SIGN_ENTITLEMENTS: Spotlightify/Spotlightify.entitlements
       configs:
         Debug:
           CODE_SIGN_STYLE: Automatic
@@ -40,10 +40,10 @@ targets:
           OTHER_CODE_SIGN_FLAGS: "--timestamp"
     sources:
       - path: Sources
-      - path: SpotifyTray/Assets.xcassets
+      - path: Spotlightify/Assets.xcassets
     dependencies:
       - package: Sparkle
-  SpotifyTrayTests:
+  SpotlightifyTests:
     type: bundle.unit-test
     platform: macOS
     deploymentTarget: "14.0"
@@ -51,9 +51,9 @@ targets:
       - path: Tests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.spotifytray.tests
-        PRODUCT_NAME: SpotifyTrayTests
-        PRODUCT_MODULE_NAME: SpotifyTrayTests
+        PRODUCT_BUNDLE_IDENTIFIER: app.spotlightify.tests
+        PRODUCT_NAME: SpotlightifyTests
+        PRODUCT_MODULE_NAME: SpotlightifyTests
         GENERATE_INFOPLIST_FILE: YES
     dependencies:
-      - target: SpotifyTray
+      - target: Spotlightify

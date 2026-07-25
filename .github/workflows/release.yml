@@ -92,8 +92,8 @@ jobs:
         run: |
           set -euo pipefail
           xcodebuild \
-            -project SpotifyTray.xcodeproj \
-            -scheme SpotifyTray \
+            -project Spotlightify.xcodeproj \
+            -scheme Spotlightify \
             -configuration Release \
             -derivedDataPath .build/DerivedData \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
@@ -106,7 +106,7 @@ jobs:
       - name: Re-sign Sparkle bundled helpers
         run: |
           set -euo pipefail
-          APP=".build/DerivedData/Build/Products/Release/SpotifyTray.app"
+          APP=".build/DerivedData/Build/Products/Release/Spotlightify.app"
           SPARKLE_FW="$APP/Contents/Frameworks/Sparkle.framework"
 
           if [ ! -d "$SPARKLE_FW" ]; then
@@ -126,7 +126,7 @@ jobs:
       - name: Verify signature
         run: |
           set -euo pipefail
-          APP=".build/DerivedData/Build/Products/Release/SpotifyTray.app"
+          APP=".build/DerivedData/Build/Products/Release/Spotlightify.app"
           codesign --verify --deep --strict --verbose=2 "$APP"
           codesign --display --verbose=4 "$APP"
 
@@ -134,7 +134,7 @@ jobs:
         id: notarize
         run: |
           set -euo pipefail
-          APP=".build/DerivedData/Build/Products/Release/SpotifyTray.app"
+          APP=".build/DerivedData/Build/Products/Release/Spotlightify.app"
           NOTARIZE_ZIP="$RUNNER_TEMP/notarize-payload.zip"
           SUBMIT_OUTPUT="$RUNNER_TEMP/notarize-submit.txt"
 
@@ -171,14 +171,14 @@ jobs:
       - name: Staple notarization ticket
         run: |
           set -euo pipefail
-          APP=".build/DerivedData/Build/Products/Release/SpotifyTray.app"
+          APP=".build/DerivedData/Build/Products/Release/Spotlightify.app"
           xcrun stapler staple "$APP"
           xcrun stapler validate "$APP"
 
       - name: Gatekeeper assessment
         run: |
           set -euo pipefail
-          APP=".build/DerivedData/Build/Products/Release/SpotifyTray.app"
+          APP=".build/DerivedData/Build/Products/Release/Spotlightify.app"
           spctl --assess --type execute --verbose=4 "$APP"
 
       - name: Package app
@@ -186,23 +186,23 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           ditto -c -k --sequesterRsrc --keepParent \
-            ".build/DerivedData/Build/Products/Release/SpotifyTray.app" \
-            "dist/SpotifyTray.app.zip"
+            ".build/DerivedData/Build/Products/Release/Spotlightify.app" \
+            "dist/Spotlightify.app.zip"
 
       - name: Create DMG
         run: |
           set -euo pipefail
           brew install create-dmg
-          APP=".build/DerivedData/Build/Products/Release/SpotifyTray.app"
-          DMG="dist/SpotifyTray.dmg"
+          APP=".build/DerivedData/Build/Products/Release/Spotlightify.app"
+          DMG="dist/Spotlightify.dmg"
           rm -f "$DMG"
           create-dmg \
-            --volname "SpotifyTray" \
+            --volname "Spotlightify" \
             --window-pos 200 120 \
             --window-size 660 400 \
             --icon-size 128 \
-            --icon "SpotifyTray.app" 180 190 \
-            --hide-extension "SpotifyTray.app" \
+            --icon "Spotlightify.app" 180 190 \
+            --hide-extension "Spotlightify.app" \
             --app-drop-link 480 190 \
             --no-internet-enable \
             "$DMG" \
@@ -220,7 +220,7 @@ jobs:
           tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
 
           SIGN_UPDATE="$RUNNER_TEMP/sparkle/bin/sign_update"
-          ZIP_PATH="dist/SpotifyTray.app.zip"
+          ZIP_PATH="dist/Spotlightify.app.zip"
 
           SIGNATURE_LINE="$(printf '%s' "$SPARKLE_ED_PRIVATE_KEY" | "$SIGN_UPDATE" --ed-key-file - "$ZIP_PATH")"
           echo "sign_update output: $SIGNATURE_LINE"
@@ -243,7 +243,7 @@ jobs:
           BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
           ED_SIGNATURE: ${{ steps.sign_update.outputs.ed_signature }}
           LENGTH: ${{ steps.sign_update.outputs.length }}
-          DOWNLOAD_URL: https://github.com/anudeep-gad12/spotify-tray/releases/download/${{ github.ref_name }}/SpotifyTray.app.zip
+          DOWNLOAD_URL: https://github.com/anudeep-gad12/spotlightify/releases/download/${{ github.ref_name }}/Spotlightify.app.zip
         run: |
           set -euo pipefail
           export PUB_DATE="$(date -u +"%a, %d %b %Y %H:%M:%S +0000")"
@@ -262,9 +262,9 @@ jobs:
               '<?xml version="1.0" standalone="yes"?>\n'
               '<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">\n'
               '  <channel>\n'
-              '    <title>SpotifyTray</title>\n'
-              '    <link>https://github.com/anudeep-gad12/spotify-tray</link>\n'
-              '    <description>SpotifyTray release feed</description>\n'
+              '    <title>Spotlightify</title>\n'
+              '    <link>https://github.com/anudeep-gad12/spotlightify</link>\n'
+              '    <description>Spotlightify release feed</description>\n'
               '    <language>en</language>\n'
               '    <item>\n'
               f'      <title>v{version}</title>\n'
@@ -295,16 +295,16 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SpotifyTray-app
-          path: dist/SpotifyTray.app.zip
+          name: Spotlightify-app
+          path: dist/Spotlightify.app.zip
 
       - name: Attach assets to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/SpotifyTray.dmg
-            dist/SpotifyTray.app.zip
+            dist/Spotlightify.dmg
+            dist/Spotlightify.app.zip
             dist/appcast.xml
           prerelease: ${{ steps.version.outputs.is_prerelease == 'true' }}
 
@@ -333,7 +333,7 @@ jobs:
           fi
 
           VERSION="${GITHUB_REF_NAME#v}"
-          SHA256="$(shasum -a 256 dist/SpotifyTray.app.zip | awk '{print $1}')"
+          SHA256="$(shasum -a 256 dist/Spotlightify.app.zip | awk '{print $1}')"
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -347,13 +347,13 @@ jobs:
           git clone "git@github.com:${TAP_REPO}.git" homebrew-tap
 
           cd homebrew-tap
-          ruby -0pi -e "gsub(/version \"[^\"]+\"/, \"version \\\"${VERSION}\\\"\"); gsub(/sha256 \"[a-f0-9]+\"/, \"sha256 \\\"${SHA256}\\\"\")" Casks/spotify-tray.rb
+          ruby -0pi -e "gsub(/version \"[^\"]+\"/, \"version \\\"${VERSION}\\\"\"); gsub(/sha256 \"[a-f0-9]+\"/, \"sha256 \\\"${SHA256}\\\"\")" Casks/spotlightify.rb
 
           if git diff --quiet; then
             echo "Homebrew cask already up to date."
             exit 0
           fi
 
-          git add Casks/spotify-tray.rb
-          git commit -m "Update SpotifyTray cask to v${VERSION}"
+          git add Casks/spotlightify.rb
+          git commit -m "Update Spotlightify cask to v${VERSION}"
           git push

@@ -23,7 +23,7 @@ final class StatusBarController: NSObject {
             button.title = ""
         } else if let symbolImage = NSImage(
             systemSymbolName: "magnifyingglass",
-            accessibilityDescription: "SpotifyTray"
+            accessibilityDescription: "Spotlightify"
         ) {
             let configuration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
             let image = symbolImage.withSymbolConfiguration(configuration) ?? symbolImage
@@ -36,7 +36,7 @@ final class StatusBarController: NSObject {
             button.title = "♪"
         }
 
-        button.toolTip = "SpotifyTray"
+        button.toolTip = "Spotlightify"
         refreshMenu()
     }
 
@@ -59,7 +59,7 @@ final class StatusBarController: NSObject {
             menu.addItem(makeItem(title: "Check for Updates…", action: #selector(checkForUpdates)))
         }
         menu.addItem(.separator())
-        menu.addItem(makeItem(title: "Quit SpotifyTray", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(makeItem(title: "Quit Spotlightify", action: #selector(quit), keyEquivalent: "q"))
         statusItem.menu = menu
     }
 

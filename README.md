@@ -1,6 +1,6 @@
-# SpotifyTray
+# Spotlightify
 
-SpotifyTray is a tiny macOS menu bar app for Spotify. Press a hotkey, search tracks in a polished popup, then play or queue them without switching to the Spotify window.
+Spotlightify is a tiny macOS menu bar app for Spotify. Press a hotkey, search tracks in a polished popup, then play or queue them without switching to the Spotify window.
 
 Features:
 
@@ -21,21 +21,21 @@ Requirements:
 
 ## Install
 
-Download `SpotifyTray.dmg` from [Releases](https://github.com/anudeep-gad12/spotify-tray/releases/latest), open it, and drag `SpotifyTray` into **Applications**. Then open SpotifyTray from Applications.
+Download `Spotlightify.dmg` from [Releases](https://github.com/anudeep-gad12/spotlightify/releases/latest), open it, and drag `Spotlightify` into **Applications**. Then open Spotlightify from Applications.
 
 Or with Homebrew:
 
 ```bash
-brew install --cask anudeep-gad12/tap/spotify-tray
+brew install --cask anudeep-gad12/tap/spotlightify
 ```
 
 ## Updates
 
-After SpotifyTray is in **Applications**, use **Check for Updates…** in the menu bar.
+After Spotlightify is in **Applications**, use **Check for Updates…** in the menu bar.
 
 ## First-Time Spotify Setup
 
-Each user needs their own Spotify developer app. SpotifyTray does not ship with your credentials.
+Each user needs their own Spotify developer app. Spotlightify does not ship with your credentials.
 
 1. Go to `https://developer.spotify.com/dashboard`
 2. Create an app
@@ -47,12 +47,12 @@ http://127.0.0.1:43821/callback
 
 4. Save the app settings
 5. Copy the app’s `Client ID`
-6. Open SpotifyTray
+6. Open Spotlightify
 7. Choose `Spotify Setup` from the menu bar icon, or open the popup
 8. Paste the `Client ID` into the setup screen and save it locally
 9. Click `Login / Reconnect`
 
-Do not paste your `Client secret`. SpotifyTray does not use it.
+Do not paste your `Client secret`. Spotlightify does not use it.
 
 ## Build From Source
 
@@ -65,7 +65,7 @@ Commands:
 
 ```bash
 xcodegen generate
-open SpotifyTray.xcodeproj
+open Spotlightify.xcodeproj
 ```
 
 For a local debug build:
@@ -82,8 +82,8 @@ Log tail:
 
 ## Project Notes
 
-- user tokens are stored in the macOS Keychain under service `app.spotifytray`
-- logs are stored locally in `~/Library/Logs/SpotifyTray/app.log`
+- user tokens are stored in the macOS Keychain under service `app.spotlightify`
+- logs are stored locally in `~/Library/Logs/Spotlightify/app.log`
 - user client IDs are stored locally in app preferences
 - the repo does not need a real `SPOTIFY_CLIENT_ID` to build
 

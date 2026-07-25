@@ -1,5 +1,5 @@
 import XCTest
-@testable import SpotifyTray
+@testable import Spotlightify
 
 final class SearchViewModelTests: XCTestCase {
     func testQueueDeduplicationRemovesCurrentTrackAndRepeatedUpcomingTracks() {

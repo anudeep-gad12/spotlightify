@@ -1,5 +1,5 @@
 import XCTest
-@testable import SpotifyTray
+@testable import Spotlightify
 
 final class ClientConfigurationStoreTests: XCTestCase {
     func testFallsBackToBundledClientIDWhenNoUserValueExists() {
@@ -31,7 +31,7 @@ final class ClientConfigurationStoreTests: XCTestCase {
     }
 
     private func makeDefaults() -> UserDefaults {
-        let suiteName = "SpotifyTrayTests.\(UUID().uuidString)"
+        let suiteName = "SpotlightifyTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return defaults

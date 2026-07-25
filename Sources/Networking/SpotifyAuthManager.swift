@@ -335,7 +335,7 @@ private extension Data {
 private final class LoopbackCallbackServer: @unchecked Sendable {
     private let host: String
     private let port: UInt16
-    private let queue = DispatchQueue(label: "app.spotifytray.auth-callback")
+    private let queue = DispatchQueue(label: "app.spotlightify.auth-callback")
     private let listener: NWListener
     private let lock = NSLock()
     private var didFinish = false
@@ -405,7 +405,7 @@ private final class LoopbackCallbackServer: @unchecked Sendable {
 
                     let responseHTML = """
                     <html><body style="font-family:-apple-system,system-ui;padding:24px;">
-                    <h2>SpotifyTray</h2>
+                    <h2>Spotlightify</h2>
                     <p>Login complete. You can close this browser tab.</p>
                     </body></html>
                     """

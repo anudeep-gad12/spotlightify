@@ -21,7 +21,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/anudeep-gad12/spotify-tray/gh-pages/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/anudeep-gad12/spotlightify/gh-pages/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>zihJlsqwyeN6uCYgq2AtK7xZn4OHjL1mz9gA/ghGCT8=</string>
 	<key>SUEnableAutomaticChecks</key>
@@ -36,7 +36,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>app.spotifytray.auth</string>
+			<string>app.spotlightify.auth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>$(SPOTIFY_CALLBACK_SCHEME)</string>

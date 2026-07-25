@@ -3,19 +3,19 @@ set -euo pipefail
 
 ROOT_DIR="${0:A:h}"
 cd "$ROOT_DIR"
-APP_LOG_DIR="$HOME/Library/Logs/SpotifyTray"
+APP_LOG_DIR="$HOME/Library/Logs/Spotlightify"
 APP_LOG_FILE="$APP_LOG_DIR/app.log"
 
 case "${1:-open}" in
   open)
     xcodegen generate
-    open SpotifyTray.xcodeproj
+    open Spotlightify.xcodeproj
     ;;
   fresh)
     rm -rf .build/DerivedData
     xcodegen generate
-    xcodebuild -project SpotifyTray.xcodeproj -scheme SpotifyTray -destination 'platform=macOS' -derivedDataPath .build/DerivedData build
-    open SpotifyTray.xcodeproj
+    xcodebuild -project Spotlightify.xcodeproj -scheme Spotlightify -destination 'platform=macOS' -derivedDataPath .build/DerivedData build
+    open Spotlightify.xcodeproj
     ;;
   traces)
     mkdir -p "$APP_LOG_DIR"
