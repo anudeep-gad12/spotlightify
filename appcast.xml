@@ -1,20 +1,20 @@
 <?xml version="1.0" standalone="yes"?>
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
-    <title>SpotifyTray</title>
-    <link>https://github.com/anudeep-gad12/spotify-tray</link>
-    <description>SpotifyTray release feed</description>
+    <title>Spotlightify</title>
+    <link>https://github.com/anudeep-gad12/spotlightify</link>
+    <description>Spotlightify release feed</description>
     <language>en</language>
     <item>
-      <title>v0.3.10</title>
-      <pubDate>Sat, 18 Jul 2026 04:48:00 +0000</pubDate>
-      <sparkle:version>65</sparkle:version>
-      <sparkle:shortVersionString>0.3.10</sparkle:shortVersionString>
+      <title>v0.4.0</title>
+      <pubDate>Sat, 25 Jul 2026 16:03:05 +0000</pubDate>
+      <sparkle:version>67</sparkle:version>
+      <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <enclosure
-        url="https://github.com/anudeep-gad12/spotify-tray/releases/download/v0.3.10/SpotifyTray.app.zip"
-        sparkle:edSignature="ydVckfCDDaZU2xwaO+InaR36MzhnYOWKhRJCAOmVVJTlYYTYL9tbvxxzhfO4ZM58FZImLdH9JJkKa8HNOMlZDg=="
-        length="1787222"
+        url="https://github.com/anudeep-gad12/spotlightify/releases/download/v0.4.0/Spotlightify.app.zip"
+        sparkle:edSignature="eZm98kWYRimwRCuQ+TgDb3gWsHYYDPpZ5LK10NJ6T0G4QKZYi2gS1eDA+044f/9nBVPO7IVk2zQT+7kbGOxfCg=="
+        length="1794011"
         type="application/octet-stream" />
     </item>
   </channel>
