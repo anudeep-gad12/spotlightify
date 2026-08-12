@@ -1459,11 +1459,11 @@ private extension AppearancePreference {
 
 private extension Color {
     static let panelCanvas = adaptive(
-        light: NSColor(srgbRed: 0.969, green: 0.969, blue: 0.957, alpha: 1.0),
+        light: .white,
         dark: NSColor(srgbRed: 0.020, green: 0.021, blue: 0.024, alpha: 1.0)
     )
     static let panelSurface = adaptive(
-        light: NSColor(srgbRed: 0.949, green: 0.945, blue: 0.929, alpha: 1.0),
+        light: .white,
         dark: NSColor(srgbRed: 0.041, green: 0.043, blue: 0.048, alpha: 1.0)
     )
     static let ink = adaptive(
