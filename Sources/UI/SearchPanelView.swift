@@ -3,14 +3,13 @@ import SwiftUI
 
 enum SearchPanelLayout {
     /// The visible rounded card.
-    static let cardWidth: CGFloat = 800
-    static let cardHeight: CGFloat = 740
-    static let cornerRadius: CGFloat = 30
-    /// Transparent breathing room around the card so the drop shadow can fade
-    /// out cleanly instead of being crammed into the window's square corners.
-    static let shadowMargin: CGFloat = 64
-    static let windowWidth = cardWidth + shadowMargin * 2
-    static let windowHeight = cardHeight + shadowMargin * 2
+    static let cardWidth: CGFloat = 760
+    static let cardHeight: CGFloat = 660
+    static let cornerRadius: CGFloat = 26
+    /// Small transparent inset keeps the rounded material clear of the square window edge.
+    static let windowInset: CGFloat = 12
+    static let windowWidth = cardWidth + windowInset * 2
+    static let windowHeight = cardHeight + windowInset * 2
 }
 
 struct SearchPanelView: View {
@@ -22,54 +21,42 @@ struct SearchPanelView: View {
     @ObservedObject var viewModel: SearchViewModel
     @ObservedObject var appearanceStore: AppearancePreferenceStore
     let onAppearanceChanged: (AppearancePreference) -> Void
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focusedField: FocusField?
-    @State private var isAppearanceMenuHovered = false
     @State private var seekPreviewFraction: CGFloat?
     @State private var isSeekHovered = false
     @State private var isSeekDragging = false
 
     var body: some View {
-        ZStack {
-            background
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            searchField
 
-            VStack(alignment: .leading, spacing: 22) {
-                header
-                searchField
-
-                if shouldShowModeSwitcher {
-                    modeSwitcher
-                }
-
-                if let message = viewModel.inlineMessage {
-                    inlineMessage(message)
-                }
-
-                resultsSurface
-
-                if shouldShowNowPlayingCard {
-                    nowPlayingCard
-                }
-
-                footer
+            if shouldShowModeSwitcher {
+                modeSwitcher
             }
-            .padding(.horizontal, 34)
-            .padding(.vertical, 30)
+
+            if let message = viewModel.inlineMessage {
+                inlineMessage(message)
+            }
+
+            resultsSurface
+
+            if shouldShowNowPlayingCard {
+                nowPlayingCard
+            }
+
+            footer
         }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 22)
         .frame(width: SearchPanelLayout.cardWidth, height: SearchPanelLayout.cardHeight)
-        .clipShape(RoundedRectangle(cornerRadius: SearchPanelLayout.cornerRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: SearchPanelLayout.cornerRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color.overlayInk.opacity(0.14), Color.overlayInk.opacity(0.045)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
-        .shadow(color: Color.panelShadow, radius: 54, y: 26)
-        .padding(SearchPanelLayout.shadowMargin)
+        .modifier(NativePanelSurface(
+            reduceTransparency: reduceTransparency,
+            appearance: appearanceStore.preference
+        ))
+        .padding(SearchPanelLayout.windowInset)
         .frame(width: SearchPanelLayout.windowWidth, height: SearchPanelLayout.windowHeight)
         .preferredColorScheme(appearanceStore.preference.preferredColorScheme)
         .onAppear {
@@ -80,55 +67,20 @@ struct SearchPanelView: View {
         }
     }
 
-    private var background: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color.panelCanvas,
-                    Color.panelSurface.opacity(0.98),
-                    Color.panelCanvas
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            PanelGrid()
-                .opacity(0.16)
-
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.overlayInk.opacity(0.022), Color.clear, Color.panelShade],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-        }
-    }
-
     private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .center, spacing: 8) {
-                    Image("LogoMark")
-                        .resizable()
-                        .interpolation(.high)
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 26, height: 26)
-                        .accessibilityHidden(true)
+        HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .center, spacing: 9) {
+                Image("LogoMark")
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
 
-                    Text("Spotlightify")
-                        .font(.system(size: 22, weight: .semibold, design: .default))
-                        .foregroundStyle(Color.ink)
-                        .tracking(-0.45)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                }
-
-                Text(headerSubtitle)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.inkMuted)
-                    .lineLimit(2)
+                Text("Spotlightify")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Color.ink)
+                    .tracking(-0.35)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .overlay {
@@ -136,69 +88,34 @@ struct SearchPanelView: View {
             }
             .help("Drag to move Spotlightify")
 
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 openSpotifyButton
-
-                appearanceMenu
-
-                compactPill("⌘⇧Space")
-                    .help("Cmd+Shift+Space")
-                    .accessibilityLabel("Cmd+Shift+Space")
-
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(statusTint)
-                        .frame(width: 6, height: 6)
-
-                    Text(statusLabel)
-                        .font(.system(size: 12, weight: .medium))
-                        .lineLimit(1)
-                }
-                .foregroundStyle(Color.inkMuted)
+                appearanceControls
             }
             .fixedSize(horizontal: true, vertical: false)
         }
     }
 
-    private var appearanceMenu: some View {
-        Menu {
-            Picker("Theme", selection: appearanceSelection) {
-                Label("Light", systemImage: AppearancePreference.light.symbolName)
-                    .tag(AppearancePreference.light)
-                Label("Dark", systemImage: AppearancePreference.dark.symbolName)
-                    .tag(AppearancePreference.dark)
-                Label("System", systemImage: AppearancePreference.system.symbolName)
-                    .tag(AppearancePreference.system)
-            }
-            .pickerStyle(.inline)
-        } label: {
-            Image(systemName: appearanceStore.preference.symbolName)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(isAppearanceMenuHovered ? Color.ink : Color.inkMuted)
-                .frame(width: 32, height: 32)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isAppearanceMenuHovered ? Color.overlayInk.opacity(0.055) : Color.clear)
-                )
-                .contentShape(Rectangle())
-        }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.12)) {
-                isAppearanceMenuHovered = hovering
+    private var appearanceControls: some View {
+        HStack(spacing: 2) {
+            ForEach(AppearancePreference.allCases, id: \.self) { preference in
+                let selected = appearanceStore.preference == preference
+                Button {
+                    onAppearanceChanged(preference)
+                } label: {
+                    Image(systemName: preference.symbolName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(selected ? Color.ink : Color.inkMuted)
+                        .frame(width: 30, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .modifier(SelectedModeSurface(isSelected: selected))
+                .help("Theme: \(preference.title)")
+                .accessibilityLabel("Theme: \(preference.title)")
+                .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
-        .help("Theme: \(appearanceStore.preference.title)")
-        .accessibilityLabel("Theme: \(appearanceStore.preference.title)")
-    }
-
-    private var appearanceSelection: Binding<AppearancePreference> {
-        Binding(
-            get: { appearanceStore.preference },
-            set: { onAppearanceChanged($0) }
-        )
     }
 
     private var openSpotifyButton: some View {
@@ -213,78 +130,60 @@ struct SearchPanelView: View {
                     .font(.system(size: 12, weight: .medium))
                     .lineLimit(1)
             }
-            .foregroundStyle(Color.inkMuted)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
             .fixedSize(horizontal: true, vertical: false)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(Color.overlayInk.opacity(0.045))
-            )
-            .overlay(
-                Capsule(style: .continuous)
-                    .stroke(Color.separator, lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
+        .modifier(NativeGlassButtonStyle())
         .help("Open the Spotify desktop app")
     }
 
     private var searchField: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("what do you want to hear?")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color.inkFaint)
+        HStack(spacing: 13) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 23, weight: .medium))
+                .foregroundStyle(Color.inkMuted)
 
-            HStack(spacing: 12) {
-                TextField("Search tracks or artists", text: $viewModel.query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 34, weight: .semibold, design: .default))
-                    .foregroundStyle(Color.ink)
-                    .focused($focusedField, equals: .search)
-                    .disabled(isSetupState)
+            TextField("Search tracks or artists", text: $viewModel.query)
+                .textFieldStyle(.plain)
+                .font(.system(size: 29, weight: .medium))
+                .foregroundStyle(Color.ink)
+                .focused($focusedField, equals: .search)
+                .disabled(isSetupState)
 
-                if !viewModel.query.isEmpty {
-                    Button {
-                        viewModel.query = ""
-                    } label: {
-                        Text("clear")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Color.inkFaint)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSetupState)
+            if !viewModel.query.isEmpty {
+                Button {
+                    viewModel.query = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.inkMuted)
                 }
+                .buttonStyle(.plain)
+                .disabled(isSetupState)
+                .accessibilityLabel("Clear search")
             }
-
-            Rectangle()
-                .fill(Color.separator)
-                .frame(height: 1)
         }
+        .frame(height: 58)
+        .overlay(alignment: .bottom) { Color.separator.frame(height: 1) }
         .opacity(isSetupState ? 0.64 : 1)
     }
 
     private var modeSwitcher: some View {
-        HStack(spacing: 24) {
+        HStack(spacing: 7) {
             ForEach(SearchPanelMode.allCases) { mode in
-                let isActive = viewModel.activeMode == mode
+                let selected = viewModel.activeMode == mode
                 Button {
                     viewModel.setMode(mode)
                 } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(mode.title.lowercased())
-                            .font(.system(size: 13, weight: isActive ? .semibold : .medium))
-                            .foregroundStyle(isActive ? Color.ink : Color.inkFaint)
-
-                        Rectangle()
-                            .fill(isActive ? Color.ink : Color.clear)
-                            .frame(width: 18, height: 1)
-                    }
+                    Text(mode.title)
+                        .font(.system(size: 13, weight: selected ? .semibold : .medium))
+                        .foregroundStyle(selected ? Color.ink : Color.inkMuted)
+                        .frame(minWidth: 72)
+                        .padding(.vertical, 7)
                 }
                 .buttonStyle(.plain)
+                .modifier(SelectedModeSurface(isSelected: selected))
+                .accessibilityAddTraits(selected ? .isSelected : [])
             }
-
-            Spacer(minLength: 0)
         }
     }
 
@@ -322,9 +221,9 @@ struct SearchPanelView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .center) {
                     Text(sectionTitle)
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Color.inkFaint)
-                        .textCase(.lowercase)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.inkMuted)
+                        .textCase(.uppercase)
 
                     Spacer()
 
@@ -345,7 +244,7 @@ struct SearchPanelView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .animation(.easeInOut(duration: 0.22), value: viewModel.selectedAlbum?.id)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: viewModel.selectedAlbum?.id)
     }
 
     @ViewBuilder
@@ -355,9 +254,9 @@ struct SearchPanelView: View {
                 // Header
                 HStack {
                     Text("Album")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Color.inkFaint)
-                        .textCase(.lowercase)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.inkMuted)
+                        .textCase(.uppercase)
 
                     Spacer()
 
@@ -438,7 +337,7 @@ struct SearchPanelView: View {
                         .scrollIndicators(.hidden)
                         .onChange(of: viewModel.albumTrackSelectedIndex) {
                             guard items.indices.contains(viewModel.albumTrackSelectedIndex) else { return }
-                            withAnimation(.easeInOut(duration: 0.14)) {
+                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.14)) {
                                 proxy.scrollTo(items[viewModel.albumTrackSelectedIndex].id, anchor: .center)
                             }
                         }
@@ -456,7 +355,7 @@ struct SearchPanelView: View {
                 }
             }
             .padding(.leading, 20)
-            .frame(width: 280)
+            .frame(width: 250)
         }
     }
 
@@ -500,7 +399,7 @@ struct SearchPanelView: View {
         durationMs: Int?,
         isRefreshing: Bool
     ) -> some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             AsyncImage(url: artworkURL) { image in
                 image
                     .resizable()
@@ -514,10 +413,10 @@ struct SearchPanelView: View {
                             .foregroundStyle(Color.inkFaint)
                     }
             }
-            .frame(width: 72, height: 72)
+            .frame(width: 54, height: 54)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     Text("now playing")
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
@@ -539,15 +438,15 @@ struct SearchPanelView: View {
                             .transition(.opacity)
                     }
                 }
-                .animation(.easeOut(duration: 0.14), value: isRefreshing)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.14), value: isRefreshing)
 
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Color.ink)
                     .lineLimit(1)
 
                 Text(artistLine)
-                    .font(.system(size: 13, weight: .regular))
+                    .font(.system(size: 12, weight: .regular))
                     .foregroundStyle(Color.inkMuted)
                     .lineLimit(1)
 
@@ -571,7 +470,8 @@ struct SearchPanelView: View {
                 .frame(maxWidth: 120, alignment: .trailing)
             }
         }
-        .padding(.top, 2)
+        .padding(.top, 12)
+        .overlay(alignment: .top) { Color.separator.frame(height: 1) }
     }
 
     private func seekBar(_ progressFraction: CGFloat?, durationMs: Int?) -> some View {
@@ -634,7 +534,7 @@ struct SearchPanelView: View {
                 .frame(maxHeight: .infinity, alignment: .center)
                 .contentShape(Rectangle())
                 .onHover { hovering in
-                    withAnimation(.easeOut(duration: 0.12)) {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.12)) {
                         isSeekHovered = hovering
                     }
                 }
@@ -663,7 +563,7 @@ struct SearchPanelView: View {
                             }
                         }
                 )
-                .animation(.easeOut(duration: 0.12), value: expanded)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: expanded)
             }
             .frame(height: 18)
 
@@ -690,9 +590,8 @@ struct SearchPanelView: View {
     @ViewBuilder
     private var sectionMeta: some View {
         Text(sectionMetaText)
-            .font(.system(size: 11, weight: .medium, design: .monospaced))
-            .foregroundStyle(Color.inkFaint)
-            .textCase(.lowercase)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(Color.inkMuted)
     }
 
     @ViewBuilder
@@ -733,11 +632,20 @@ struct SearchPanelView: View {
     private var searchContent: some View {
         switch viewModel.panelState {
         case .helper:
-            emptyState(
-                icon: "sparkles",
-                title: "Start typing to launch something good",
-                subtitle: "Live search stays focused on tracks and keeps the strongest matches in one view."
-            )
+            VStack(spacing: 10) {
+                Image(systemName: "music.note")
+                    .font(.system(size: 25, weight: .light))
+                    .foregroundStyle(Color.inkMuted)
+
+                Text("Search your music")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Color.inkSecondary)
+
+                Text("Tracks, artists, and albums in one place")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.inkMuted)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .loading:
             loadingState(
                 icon: "waveform.and.magnifyingglass",
@@ -802,12 +710,9 @@ struct SearchPanelView: View {
             Button(viewModel.loginInProgress ? "Waiting For Spotify..." : "Login / Reconnect") {
                 viewModel.requestLogin()
             }
-            .buttonStyle(.plain)
+            .modifier(NativeGlassButtonStyle(prominent: true))
             .disabled(viewModel.loginInProgress)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .background(primaryButtonBackground)
-            .foregroundStyle(Color.onPrimary)
+            .controlSize(.large)
             .font(.system(size: 14, weight: .bold))
         }
     }
@@ -850,7 +755,7 @@ struct SearchPanelView: View {
             .scrollIndicators(.hidden)
             .onChange(of: viewModel.selectedIndex) {
                 guard items.indices.contains(viewModel.selectedIndex) else { return }
-                withAnimation(.easeInOut(duration: 0.14)) {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.14)) {
                     proxy.scrollTo(items[viewModel.selectedIndex].id, anchor: .center)
                 }
             }
@@ -858,6 +763,11 @@ struct SearchPanelView: View {
     }
 
     private var setupContent: some View {
+        ScrollView { setupForm }
+            .scrollIndicators(.hidden)
+    }
+
+    private var setupForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Bring your own Spotify app")
@@ -890,44 +800,27 @@ struct SearchPanelView: View {
                     .focused($focusedField, equals: .clientID)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.overlayInk.opacity(0.035))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.overlayInk.opacity(0.085), lineWidth: 1)
-                    )
+                    .modifier(NativeGlassBackground(cornerRadius: 18))
             }
 
             HStack(spacing: 12) {
                 Button("Save Client ID") {
                     viewModel.saveClientID()
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 12)
-                .background(primaryButtonBackground)
-                .foregroundStyle(Color.onPrimary)
+                .modifier(NativeGlassButtonStyle(prominent: true))
+                .controlSize(.large)
                 .font(.system(size: 14, weight: .bold))
 
                 if viewModel.hasSavedClientID {
                     Button("Clear Saved Setup") {
                         viewModel.clearConfiguration()
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 12)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.overlayInk.opacity(0.065))
-                    )
-                    .foregroundStyle(Color.ink)
+                    .modifier(NativeGlassButtonStyle())
+                    .controlSize(.large)
                     .font(.system(size: 14, weight: .bold))
                 }
             }
 
-            Spacer(minLength: 0)
         }
     }
 
@@ -990,26 +883,15 @@ struct SearchPanelView: View {
     }
 
     private var footer: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 16) {
-                if !isSetupState {
-                    keyboardHint("Enter", "Play")
-                    keyboardHint("Cmd+Enter", "Queue")
-                    keyboardHint("↑ ↓", "Move")
-                    keyboardHint("← →", "Nav")
-                    keyboardHint("Tab", "Switch")
-                }
-
-                keyboardHint("Esc", "Close")
-            }
-
+        HStack(spacing: 18) {
             if !isSetupState {
-                HStack(spacing: 16) {
-                    keyboardHint("Ctrl+Opt+P", "Pause")
-                    keyboardHint("Ctrl+Opt+N", "Next")
-                    keyboardHint("Ctrl+Opt+B", "Previous")
-                }
+                keyboardHint("↵", "Play")
+                keyboardHint("⌘↵", "Queue")
+                keyboardHint("↑ ↓", "Select")
+                keyboardHint("Tab", "Switch")
             }
+            Spacer(minLength: 0)
+            keyboardHint("Esc", "Close")
         }
     }
 
@@ -1072,39 +954,6 @@ struct SearchPanelView: View {
         }
     }
 
-    private var headerSubtitle: String {
-        switch viewModel.panelState {
-        case .setupRequired:
-            return "First-run setup for your own Spotify developer app."
-        default:
-            return "Search and queue without switching apps."
-        }
-    }
-
-    private var statusLabel: String {
-        switch viewModel.panelState {
-        case .setupRequired:
-            return "Setup needed"
-        case .authenticationRequired:
-            return "Ready to connect"
-        case .loading:
-            return "searching"
-        default:
-            return "ready"
-        }
-    }
-
-    private var statusTint: Color {
-        switch viewModel.panelState {
-        case .setupRequired:
-            return Color.orange.opacity(0.95)
-        case .authenticationRequired:
-            return Color.inkMuted
-        default:
-            return Color.playingDot
-        }
-    }
-
     private var isSetupState: Bool {
         if case .setupRequired = viewModel.panelState {
             return true
@@ -1133,32 +982,15 @@ struct SearchPanelView: View {
         }
     }
 
-    private var primaryButtonBackground: some View {
-        Capsule(style: .continuous)
-            .fill(Color.ink)
-    }
-
-    private var nowPlayingBackground: some View {
-        Color.clear
-    }
-
-    private func compactPill(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 12, weight: .medium, design: .monospaced))
-            .foregroundStyle(Color.inkMuted)
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-    }
-
     private func keyboardHint(_ key: String, _ label: String) -> some View {
         HStack(spacing: 6) {
             Text(key)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(Color.inkMuted)
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Color.inkSecondary)
 
             Text(label)
-                .font(.system(size: 11, weight: .regular))
-                .foregroundStyle(Color.inkFaint)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(Color.inkMuted)
         }
     }
 
@@ -1175,6 +1007,7 @@ private struct TrackListRow: View {
     let isSelected: Bool
 
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var track: SpotifyTrack {
         item.track
@@ -1257,7 +1090,7 @@ private struct TrackListRow: View {
             alignment: .bottom
         )
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
                 isHovered = hovering
             }
         }
@@ -1289,6 +1122,7 @@ private struct AlbumTrackRow: View {
     let isSelected: Bool
 
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var track: SpotifyTrack {
         item.track
@@ -1328,7 +1162,7 @@ private struct AlbumTrackRow: View {
                 .fill(isSelected ? Color.overlayInk.opacity(0.065) : isHovered ? Color.overlayInk.opacity(0.030) : Color.clear)
         )
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.15)) {
                 isHovered = hovering
             }
         }
@@ -1390,28 +1224,101 @@ private extension NowPlayingSummary {
     }
 }
 
-private struct PanelGrid: View {
-    var body: some View {
-        Canvas { context, size in
-            var path = Path()
-            let step: CGFloat = 42
+private struct NativePanelSurface: ViewModifier {
+    let reduceTransparency: Bool
+    let appearance: AppearancePreference
 
-            var x: CGFloat = 0
-            while x <= size.width {
-                path.move(to: CGPoint(x: x, y: 0))
-                path.addLine(to: CGPoint(x: x, y: size.height))
-                x += step
-            }
-
-            var y: CGFloat = 0
-            while y <= size.height {
-                path.move(to: CGPoint(x: 0, y: y))
-                path.addLine(to: CGPoint(x: size.width, y: y))
-                y += step
-            }
-
-            context.stroke(path, with: .color(Color.overlayInk.opacity(0.045)), lineWidth: 0.5)
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content
+                .background(Color(nsColor: .windowBackgroundColor))
+                .clipShape(.rect(cornerRadius: SearchPanelLayout.cornerRadius))
+        } else {
+            content
+                .background {
+                    PanelMaterial(appearance: appearance)
+                        .clipShape(.rect(cornerRadius: SearchPanelLayout.cornerRadius))
+                }
+                .clipShape(.rect(cornerRadius: SearchPanelLayout.cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: SearchPanelLayout.cornerRadius, style: .continuous)
+                        .strokeBorder(Color.separator.opacity(0.65), lineWidth: 1)
+                }
         }
+    }
+}
+
+private struct SelectedModeSurface: ViewModifier {
+    let isSelected: Bool
+
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isSelected, !reduceTransparency, #available(macOS 26.0, *) {
+            content.glassEffect(.regular, in: .capsule)
+        } else if isSelected {
+            content.background(Color.overlayInk.opacity(0.10), in: .capsule)
+        } else {
+            content
+        }
+    }
+}
+
+private struct NativeGlassBackground: ViewModifier {
+    let cornerRadius: CGFloat
+
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content
+                .background(Color(nsColor: .controlBackgroundColor), in: .rect(cornerRadius: cornerRadius))
+        } else if #available(macOS 26.0, *) {
+            content
+                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+        } else {
+            content
+                .background(.regularMaterial, in: .rect(cornerRadius: cornerRadius))
+        }
+    }
+}
+
+private struct NativeGlassButtonStyle: ViewModifier {
+    var prominent = false
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            if prominent {
+                content.buttonStyle(.glassProminent)
+            } else {
+                content.buttonStyle(.glass)
+            }
+        } else if prominent {
+            content.buttonStyle(.borderedProminent)
+        } else {
+            content.buttonStyle(.bordered)
+        }
+    }
+}
+
+private struct PanelMaterial: NSViewRepresentable {
+    let appearance: AppearancePreference
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .popover
+        view.blendingMode = .behindWindow
+        view.state = .active
+        view.appearance = appearance.appKitAppearance
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.appearance = appearance.appKitAppearance
     }
 }
 
@@ -1458,55 +1365,14 @@ private extension AppearancePreference {
 }
 
 private extension Color {
-    static let panelCanvas = adaptive(
-        light: .white,
-        dark: NSColor(srgbRed: 0.020, green: 0.021, blue: 0.024, alpha: 1.0)
-    )
-    static let panelSurface = adaptive(
-        light: .white,
-        dark: NSColor(srgbRed: 0.041, green: 0.043, blue: 0.048, alpha: 1.0)
-    )
-    static let ink = adaptive(
-        light: NSColor(srgbRed: 0.149, green: 0.145, blue: 0.118, alpha: 1.0),
-        dark: NSColor(srgbRed: 0.935, green: 0.925, blue: 0.895, alpha: 1.0)
-    )
-    static let inkSecondary = adaptive(
-        light: NSColor(srgbRed: 0.361, green: 0.349, blue: 0.310, alpha: 1.0),
-        dark: NSColor(srgbRed: 0.720, green: 0.710, blue: 0.680, alpha: 1.0)
-    )
-    static let inkMuted = adaptive(
-        light: NSColor(srgbRed: 0.541, green: 0.522, blue: 0.478, alpha: 1.0),
-        dark: NSColor(srgbRed: 0.520, green: 0.515, blue: 0.490, alpha: 1.0)
-    )
-    static let inkFaint = adaptive(
-        light: NSColor(srgbRed: 0.650, green: 0.630, blue: 0.585, alpha: 1.0),
-        dark: NSColor(srgbRed: 0.390, green: 0.390, blue: 0.370, alpha: 1.0)
-    )
-    static let overlayInk = adaptive(
-        light: NSColor(srgbRed: 0.149, green: 0.145, blue: 0.118, alpha: 1.0),
-        dark: .white
-    )
-    static let onPrimary = adaptive(
-        light: NSColor(srgbRed: 0.969, green: 0.969, blue: 0.957, alpha: 1.0),
-        dark: NSColor(white: 0.0, alpha: 0.86)
-    )
-    static let panelShade = adaptive(
-        light: NSColor(srgbRed: 0.149, green: 0.145, blue: 0.118, alpha: 0.04),
-        dark: NSColor(white: 0.0, alpha: 0.18)
-    )
-    static let panelShadow = adaptive(
-        light: NSColor(srgbRed: 0.149, green: 0.145, blue: 0.118, alpha: 0.18),
-        dark: NSColor(white: 0.0, alpha: 0.70)
-    )
-    static let separator = adaptive(
-        light: NSColor(srgbRed: 0.149, green: 0.145, blue: 0.118, alpha: 0.12),
-        dark: NSColor(white: 1.0, alpha: 0.085)
-    )
+    static let panelCanvas = Color(nsColor: .windowBackgroundColor)
+    static let ink = Color(nsColor: .labelColor)
+    static let inkSecondary = Color(nsColor: .secondaryLabelColor)
+    static let inkMuted = Color(nsColor: .secondaryLabelColor)
+    static let inkFaint = Color(nsColor: .secondaryLabelColor).opacity(0.85)
+    static let overlayInk = Color(nsColor: .labelColor)
+    static let onPrimary = Color(nsColor: .windowBackgroundColor)
+    static let panelShadow = Color(nsColor: .shadowColor)
+    static let separator = Color(nsColor: .separatorColor)
     static let playingDot = Color(nsColor: NSColor(calibratedRed: 0.337, green: 0.827, blue: 0.392, alpha: 1.0))
-
-    private static func adaptive(light: NSColor, dark: NSColor) -> Color {
-        Color(nsColor: NSColor(name: nil) { appearance in
-            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
-        })
-    }
 }

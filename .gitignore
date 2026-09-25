@@ -7,6 +7,8 @@ app.log
 *.xccheckout
 SpotifyTray.xcodeproj/xcuserdata/
 SpotifyTray.xcodeproj/project.xcworkspace/xcuserdata/
+Spotlightify.xcodeproj/xcuserdata/
+Spotlightify.xcodeproj/project.xcworkspace/xcuserdata/
 .codex/
 .pnpm-store/
 assets/brand/node_modules/

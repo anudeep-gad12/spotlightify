@@ -25,6 +25,12 @@ final class AppearancePreferenceStoreTests: XCTestCase {
         XCTAssertEqual(AppearancePreferenceStore(defaults: defaults).preference, .system)
     }
 
+    func testAppKitAppearanceMatchesPreference() {
+        XCTAssertNil(AppearancePreference.system.appKitAppearance)
+        XCTAssertEqual(AppearancePreference.light.appKitAppearance?.name, .aqua)
+        XCTAssertEqual(AppearancePreference.dark.appKitAppearance?.name, .darkAqua)
+    }
+
     private func makeDefaults() -> UserDefaults {
         let suiteName = "SpotlightifyTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

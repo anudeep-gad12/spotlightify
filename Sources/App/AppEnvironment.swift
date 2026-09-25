@@ -257,7 +257,9 @@ final class AppEnvironment: ObservableObject {
 
     func setAppearance(_ preference: AppearancePreference) {
         appearanceStore.setPreference(preference)
+        panelController?.applyAppearance(preference)
         statusBarController?.refreshMenu()
+        AppLogger.shared.log("appearance changed to \(preference.rawValue)", category: "appearance")
     }
 
     func signOut() {

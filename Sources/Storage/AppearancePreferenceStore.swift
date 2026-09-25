@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -8,6 +9,17 @@ enum AppearancePreference: String, CaseIterable, Sendable {
 
     var title: String {
         rawValue.capitalized
+    }
+
+    var appKitAppearance: NSAppearance? {
+        switch self {
+        case .system:
+            return nil
+        case .light:
+            return NSAppearance(named: .aqua)
+        case .dark:
+            return NSAppearance(named: .darkAqua)
+        }
     }
 }
 
@@ -25,7 +37,7 @@ final class AppearancePreferenceStore: ObservableObject {
 
     func setPreference(_ preference: AppearancePreference) {
         guard self.preference != preference else { return }
-        self.preference = preference
         defaults.set(preference.rawValue, forKey: defaultsKey)
+        self.preference = preference
     }
 }

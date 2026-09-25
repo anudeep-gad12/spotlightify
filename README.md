@@ -6,6 +6,7 @@ Features:
 
 - `Cmd+Shift+Space` opens the search popup
 - live track search with album art
+- native translucent popup with Liquid Glass controls on macOS 26+ and native controls on macOS 14–15
 - `Enter` plays the selected track
 - `Cmd+Enter` queues the selected track
 - `Ctrl+Option+P` play/pause
@@ -58,7 +59,7 @@ Do not paste your `Client secret`. Spotlightify does not use it.
 
 Requirements:
 
-- Xcode 16+
+- Xcode 26+
 - `xcodegen`
 
 Commands:
