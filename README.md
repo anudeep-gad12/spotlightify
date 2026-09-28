@@ -5,7 +5,9 @@ Spotlightify is a tiny macOS menu bar app for Spotify. Press a hotkey, search tr
 Features:
 
 - `Cmd+Shift+Space` opens the search popup
-- live track search with album art
+- side-by-side song and album search with album art
+- slide into an album’s track list without losing song results
+- `Left/Right` navigates songs, albums, and album details; `Up/Down` selects within a column
 - native translucent popup with Liquid Glass controls on macOS 26+ and native controls on macOS 14–15
 - `Enter` plays the selected track
 - `Cmd+Enter` queues the selected track

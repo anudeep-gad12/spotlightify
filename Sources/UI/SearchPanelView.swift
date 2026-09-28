@@ -142,7 +142,7 @@ struct SearchPanelView: View {
                 .font(.system(size: 23, weight: .medium))
                 .foregroundStyle(Color.inkMuted)
 
-            TextField("Search tracks or artists", text: $viewModel.query)
+            TextField("Search songs, albums or artists", text: $viewModel.query)
                 .textFieldStyle(.plain)
                 .font(.system(size: 29, weight: .medium))
                 .foregroundStyle(Color.ink)
@@ -217,7 +217,7 @@ struct SearchPanelView: View {
 
     private var resultsSurface: some View {
         HStack(alignment: .top, spacing: 0) {
-            // Left: main list
+            // Songs stay in place while albums drill down in the right pane.
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .center) {
                     Text(sectionTitle)
@@ -237,14 +237,60 @@ struct SearchPanelView: View {
                 content
             }
 
-            // Right: album detail panel
-            if viewModel.selectedAlbum != nil {
-                albumDetailPanel
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            if showsAlbumBrowser {
+                ZStack(alignment: .topLeading) {
+                    if viewModel.selectedAlbum != nil {
+                        albumDetailPanel
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                    } else {
+                        albumResultsPanel
+                            .transition(.move(edge: .leading).combined(with: .opacity))
+                    }
+                }
+                .frame(width: 310, alignment: .topLeading)
+                .frame(maxHeight: .infinity, alignment: .topLeading)
+                .clipped()
+                .padding(.leading, 20)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: viewModel.selectedAlbum?.id)
+    }
+
+    private var showsAlbumBrowser: Bool {
+        guard viewModel.activeMode == .search else { return false }
+        switch viewModel.panelState {
+        case .loading, .results, .empty:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var albumResultsPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("ALBUMS")
+                    .font(.system(size: 11, weight: .semibold))
+                Spacer()
+                Text("\(viewModel.searchAlbumItems.count)")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(Color.inkMuted)
+
+            Rectangle()
+                .fill(Color.separator.opacity(0.7))
+                .frame(height: 1)
+
+            if case .loading = viewModel.panelState {
+                loadingState(icon: "square.stack", title: "Searching albums", subtitle: "")
+            } else if viewModel.searchAlbumItems.isEmpty {
+                emptyState(icon: "square.stack", title: "No albums found", subtitle: "Try another title or artist.")
+            } else {
+                trackList(viewModel.searchAlbumItems, indexOffset: viewModel.searchTrackItems.count)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     @ViewBuilder
@@ -263,11 +309,13 @@ struct SearchPanelView: View {
                     Button {
                         viewModel.closeAlbumDetail()
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        Image(systemName: "chevron.left")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Color.inkFaint)
                     }
                     .buttonStyle(.plain)
+                    .help("Back to albums")
+                    .accessibilityLabel("Back to albums")
                 }
 
                 Rectangle()
@@ -354,8 +402,7 @@ struct SearchPanelView: View {
                         .padding(.top, 8)
                 }
             }
-            .padding(.leading, 20)
-            .frame(width: 250)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 
@@ -666,7 +713,11 @@ struct SearchPanelView: View {
                 tint: .orange
             )
         case .results:
-            trackList(viewModel.searchItems)
+            if viewModel.searchTrackItems.isEmpty {
+                emptyState(icon: "music.note", title: "No songs found", subtitle: "Album matches appear on the right.")
+            } else {
+                trackList(viewModel.searchTrackItems)
+            }
         case .setupRequired, .authenticationRequired:
             EmptyView()
         }
@@ -736,16 +787,16 @@ struct SearchPanelView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func trackList(_ items: [TrackListItem]) -> some View {
+    private func trackList(_ items: [TrackListItem], indexOffset: Int = 0) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 8) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        TrackListRow(item: item, index: index, isSelected: index == viewModel.selectedIndex)
+                        TrackListRow(item: item, index: index, isSelected: viewModel.focusMode == .mainList && index + indexOffset == viewModel.selectedIndex, isCompact: showsAlbumBrowser)
                             .id(item.id)
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                viewModel.select(index: index)
+                                viewModel.select(index: index + indexOffset)
                                 viewModel.playSelected()
                             }
                     }
@@ -754,9 +805,10 @@ struct SearchPanelView: View {
             }
             .scrollIndicators(.hidden)
             .onChange(of: viewModel.selectedIndex) {
-                guard items.indices.contains(viewModel.selectedIndex) else { return }
+                let localIndex = viewModel.selectedIndex - indexOffset
+                guard items.indices.contains(localIndex) else { return }
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.14)) {
-                    proxy.scrollTo(items[viewModel.selectedIndex].id, anchor: .center)
+                    proxy.scrollTo(items[localIndex].id, anchor: .center)
                 }
             }
         }
@@ -888,6 +940,9 @@ struct SearchPanelView: View {
                 keyboardHint("↵", "Play")
                 keyboardHint("⌘↵", "Queue")
                 keyboardHint("↑ ↓", "Select")
+                if showsAlbumBrowser {
+                    keyboardHint("← →", "Navigate")
+                }
                 keyboardHint("Tab", "Switch")
             }
             Spacer(minLength: 0)
@@ -907,11 +962,11 @@ struct SearchPanelView: View {
         case .search:
             switch viewModel.panelState {
             case .results:
-                return "Results"
+                return "Songs"
             case .loading:
-                return "Searching"
+                return "Songs"
             case .empty:
-                return "No Results"
+                return "Songs"
             case .error:
                 return "Error"
             default:
@@ -935,9 +990,8 @@ struct SearchPanelView: View {
         switch viewModel.activeMode {
         case .search:
             if case .results(let rows) = viewModel.panelState {
-                let albumCount = rows.filter { if case .album = $0 { return true }; return false }.count
                 let trackCount = rows.filter { if case .track = $0 { return true }; return false }.count
-                return "\(trackCount) tracks, \(albumCount) albums"
+                return "\(trackCount)"
             }
             return "Top 8"
         case .recent:
@@ -1005,6 +1059,7 @@ private struct TrackListRow: View {
     let item: TrackListItem
     let index: Int
     let isSelected: Bool
+    var isCompact = false
 
     @State private var isHovered = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -1018,11 +1073,13 @@ private struct TrackListRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
-            Text(String(format: "%02d", index + 1))
+        HStack(spacing: isCompact ? 10 : 16) {
+            if !isCompact {
+                Text(String(format: "%02d", index + 1))
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(isSelected ? Color.ink : Color.inkFaint)
                 .frame(width: 28, alignment: .leading)
+            }
 
             AsyncImage(url: track.artworkURL) { image in
                 image
@@ -1052,11 +1109,11 @@ private struct TrackListRow: View {
                         .foregroundStyle(Color.inkMuted)
                         .lineLimit(1)
 
-                    if isAlbumRow {
+                    if isAlbumRow && !isCompact {
                         albumChip
                     }
 
-                    if let metadata = item.metadata {
+                    if let metadata = item.metadata, !isCompact {
                         Text("•")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(Color.inkFaint)
@@ -1069,7 +1126,13 @@ private struct TrackListRow: View {
                 }
             }
 
-            Spacer(minLength: 10)
+            Spacer(minLength: isCompact ? 0 : 10)
+
+            if isAlbumRow && isCompact {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.inkFaint)
+            }
 
             if let duration = track.durationMs {
                 Text(formatDuration(duration))

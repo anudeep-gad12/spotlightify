@@ -88,11 +88,12 @@ final class SearchViewModel: ObservableObject {
     }
 
     var canNavigateIntoAlbum: Bool {
-        focusMode == .mainList && selectedRowAlbum != nil
+        guard activeMode == .search, case .results = panelState else { return false }
+        return focusMode == .mainList && !searchAlbumItems.isEmpty
     }
 
     var canNavigateBackFromAlbum: Bool {
-        focusMode == .albumDetail
+        focusMode == .albumDetail || (selectedRowAlbum != nil && !searchTrackItems.isEmpty)
     }
 
     var canSwitchModes: Bool {
@@ -124,6 +125,23 @@ final class SearchViewModel: ObservableObject {
                 )
             }
         }
+    }
+
+    var searchTrackItems: [TrackListItem] {
+        searchItems.filter { !$0.id.hasPrefix("album-") }
+    }
+
+    var searchAlbumItems: [TrackListItem] {
+        searchItems.filter { $0.id.hasPrefix("album-") }
+    }
+
+    func applySearchResults(tracks: [SpotifyTrack], albums: [SpotifyAlbumItem]) {
+        let rows = tracks.map(SearchResultRow.track) + albums.map(SearchResultRow.album)
+        currentResults = rows
+        closeAlbumDetail()
+        // Pending vertical movement belongs to the initial nonempty column.
+        selectedIndex = consumePendingSelectionIndex(itemCount: tracks.isEmpty ? albums.count : tracks.count)
+        panelState = rows.isEmpty ? .empty : .results(rows)
     }
 
     func prepareForPresentation() {
@@ -177,6 +195,7 @@ final class SearchViewModel: ObservableObject {
 
     func setMode(_ mode: SearchPanelMode) {
         guard activeMode != mode else { return }
+        closeAlbumDetail()
         activeMode = mode
         selectedIndex = 0
         pendingSelectionOffset = 0
@@ -229,7 +248,14 @@ final class SearchViewModel: ObservableObject {
                 }
                 return
             }
-            selectedIndex = max(0, min(count - 1, selectedIndex + offset))
+            if activeMode == .search {
+                let songCount = searchTrackItems.count
+                let lowerBound = selectedRowAlbum == nil ? 0 : songCount
+                let upperBound = selectedRowAlbum == nil ? songCount - 1 : count - 1
+                selectedIndex = max(lowerBound, min(upperBound, selectedIndex + offset))
+            } else {
+                selectedIndex = max(0, min(count - 1, selectedIndex + offset))
+            }
         case .albumDetail:
             guard case .loaded(let items) = albumTracksState, !items.isEmpty else {
                 if activeCollectionIsLoading {
@@ -244,18 +270,31 @@ final class SearchViewModel: ObservableObject {
     func select(index: Int) {
         guard activeItems.indices.contains(index) else { return }
         selectedIndex = index
+        focusMode = .mainList
     }
 
     func navigateIntoAlbum() {
-        guard focusMode == .mainList,
-              case .results = panelState,
-              let album = selectedRowAlbum else { return }
-        openAlbumDetail(album)
+        guard canNavigateIntoAlbum else { return }
+        if let album = selectedRowAlbum {
+            openAlbumDetail(album)
+        } else if selectedAlbum != nil {
+            // Returning from the songs column keeps the open album and its position.
+            focusMode = .albumDetail
+        } else {
+            selectedIndex = searchTrackItems.count + min(selectedIndex, searchAlbumItems.count - 1)
+        }
     }
 
     func navigateBackFromAlbum() {
-        guard focusMode == .albumDetail else { return }
-        closeAlbumDetail()
+        if focusMode == .albumDetail {
+            let albumID = selectedAlbum?.id
+            closeAlbumDetail()
+            if let index = searchAlbumItems.firstIndex(where: { $0.track.id == albumID }) {
+                selectedIndex = searchTrackItems.count + index
+            }
+        } else if selectedRowAlbum != nil, !searchTrackItems.isEmpty {
+            selectedIndex = min(selectedIndex - searchTrackItems.count, searchTrackItems.count - 1)
+        }
     }
 
     func playSelected() {
@@ -343,7 +382,7 @@ final class SearchViewModel: ObservableObject {
                 albumTracksState = items.isEmpty ? .empty : .loaded(items)
                 albumTrackSelectedIndex = consumePendingSelectionIndex(itemCount: items.count)
             } catch {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, selectedAlbum?.id == album.id else { return }
                 albumTracksState = .error(error.localizedDescription)
             }
         }
@@ -524,6 +563,7 @@ extension SearchViewModel {
         debounceTask?.cancel()
         searchTask?.cancel()
 
+        closeAlbumDetail()
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else {
             currentResults = []
@@ -597,18 +637,7 @@ extension SearchViewModel {
             do {
                 let (tracks, albums) = try await apiClient.searchTracksAndAlbums(query: trimmedQuery)
                 guard !Task.isCancelled else { return }
-                var rows: [SearchResultRow] = []
-                for track in tracks {
-                    rows.append(.track(track))
-                }
-                for album in albums {
-                    rows.append(.album(album))
-                }
-                currentResults = rows
-                selectedAlbum = nil
-                albumTracksState = .idle
-                selectedIndex = consumePendingSelectionIndex(itemCount: rows.count)
-                panelState = rows.isEmpty ? .empty : .results(rows)
+                applySearchResults(tracks: tracks, albums: albums)
             } catch {
                 guard !Task.isCancelled else { return }
                 currentResults = []

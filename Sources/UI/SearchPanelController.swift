@@ -151,12 +151,14 @@ final class SearchPanelController: NSWindowController, NSWindowDelegate {
                 }
                 return event
             case kVK_RightArrow:
+                guard event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty else { return event }
                 if self.environment.searchViewModel.canNavigateIntoAlbum {
                     self.environment.searchViewModel.navigateIntoAlbum()
                     return nil
                 }
                 return event
             case kVK_LeftArrow:
+                guard event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty else { return event }
                 if self.environment.searchViewModel.canNavigateBackFromAlbum {
                     self.environment.searchViewModel.navigateBackFromAlbum()
                     return nil
