@@ -77,6 +77,14 @@ For a local debug build:
 ./dev.sh fresh
 ```
 
+To try the working tree in place of the installed app (needs a Developer ID signing identity), then switch back:
+
+```bash
+./dev.sh test   # build, quit the installed app, run /Applications/Spotlightify Dev.app
+./dev.sh prod   # quit the test build, run /Applications/Spotlightify.app
+./dev.sh which  # show which one is running
+```
+
 Log tail:
 
 ```bash

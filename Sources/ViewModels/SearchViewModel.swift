@@ -6,6 +6,12 @@ enum NowPlayingState: Equatable {
     case showing(NowPlayingSummary)
 }
 
+/// The last broadcast from the local Spotify app and when it arrived.
+struct LocalPlayerEvent: Equatable {
+    let event: SpotifyPlayerEvent
+    let receivedAt: Date
+}
+
 struct NowPlayingSummary: Equatable {
     let trackURI: String?
     let title: String
@@ -109,6 +115,11 @@ final class SearchViewModel: ObservableObject {
     private var nowPlayingTask: Task<Void, Never>?
     private var nowPlayingRefreshID = UUID()
     private var trackEndRefreshTask: Task<Void, Never>?
+    private var lastPlayerEvent: LocalPlayerEvent?
+    /// How long a local broadcast outranks a disagreeing Web API read.
+    nonisolated static let localEventTrustWindow: TimeInterval = 6
+    private static let staleRefreshAttempts = 4
+    private static let staleRefreshDelay: Duration = .milliseconds(750)
     private var recentTask: Task<Void, Never>?
     private var queueTask: Task<Void, Never>?
     private var messageClearTask: Task<Void, Never>?
@@ -573,12 +584,9 @@ final class SearchViewModel: ObservableObject {
             return
         }
 
-        let isPreservingCurrentContent: Bool
         if case .showing = nowPlayingState {
-            isPreservingCurrentContent = true
             nowPlayingRefreshInProgress = true
         } else {
-            isPreservingCurrentContent = false
             nowPlayingState = .loading
             nowPlayingRefreshInProgress = false
         }
@@ -590,49 +598,95 @@ final class SearchViewModel: ObservableObject {
                 }
             }
 
-            do {
-                let playbackState = try await apiClient.currentPlaybackState()
-                guard !Task.isCancelled else { return }
-                guard let summary = Self.makeNowPlayingSummary(from: playbackState, sampledAt: Date()) else {
-                    nowPlayingState = .hidden
+            var attempt = 1
+            while true {
+                do {
+                    let playbackState = try await apiClient.currentPlaybackState()
+                    guard !Task.isCancelled else { return }
+                    let fetched = Self.makeNowPlayingSummary(from: playbackState, sampledAt: Date())
+
+                    let resolved: NowPlayingSummary?
+                    switch Self.reconcile(fetched, withLocalEvent: lastPlayerEvent, now: Date()) {
+                    case .accept(let summary):
+                        resolved = summary
+                    case .stale where attempt < Self.staleRefreshAttempts:
+                        // The Web API trails the desktop app by a second or so after a track change.
+                        attempt += 1
+                        try await Task.sleep(for: Self.staleRefreshDelay)
+                        continue
+                    case .stale:
+                        // Still behind: keep what the local Spotify app reported rather than reverting.
+                        if case .showing = nowPlayingState { return }
+                        resolved = fetched
+                    }
+
+                    guard let summary = resolved else {
+                        nowPlayingState = .hidden
+                        return
+                    }
+                    nowPlayingState = .showing(summary)
+                    // The heart is only visible in the panel, so don't spend a request on it otherwise.
+                    if isPresented {
+                        checkLikedState(for: summary.trackURI)
+                    }
                     return
-                }
-                nowPlayingState = .showing(summary)
-                // The heart is only visible in the panel, so don't spend a request on it otherwise.
-                if isPresented {
-                    checkLikedState(for: summary.trackURI)
-                }
-            } catch {
-                guard !Task.isCancelled else { return }
-                if !isPreservingCurrentContent {
-                    nowPlayingState = .hidden
+                } catch {
+                    guard !Task.isCancelled else { return }
+                    if nowPlayingState == .loading {
+                        nowPlayingState = .hidden
+                    }
+                    return
                 }
             }
         }
     }
 
-    /// Applies a broadcast from the local Spotify app. Play/pause and position changes on the
-    /// same track update in place. A new track is read from the API only while the panel is
-    /// open (for artwork and device); otherwise the broadcast itself is enough, and opening
-    /// the panel refreshes anyway.
+    /// Applies a broadcast from the local Spotify app, which is always fresher than the Web API.
+    /// The broadcast is shown immediately; a new track is then read from the API only while the
+    /// panel is open (for artwork and device), and opening the panel refreshes anyway.
     func applyPlayerEvent(_ event: SpotifyPlayerEvent) {
-        guard canShowNowPlaying else { return }
         let now = Date()
+        lastPlayerEvent = LocalPlayerEvent(event: event, receivedAt: now)
+        guard canShowNowPlaying else { return }
 
-        if event.state != .stopped,
-           case .showing(let summary) = nowPlayingState,
-           let uri = event.trackURI,
-           uri == summary.trackURI
-        {
+        if event.state == .stopped {
+            cancelNowPlayingRefresh()
+            nowPlayingState = .hidden
+            return
+        }
+
+        if isShowingTrack(event.trackURI) {
+            showLocalPlayback(event, at: now)
+            return
+        }
+
+        guard event.title != nil else {
+            if isPresented { refreshNowPlaying() }
+            return
+        }
+
+        // Drop any in-flight read: it was issued before this track started and would revert it.
+        cancelNowPlayingRefresh()
+        showLocalPlayback(event, at: now)
+        if isPresented {
+            refreshNowPlaying()
+        }
+    }
+
+    private func isShowingTrack(_ uri: String?) -> Bool {
+        guard let uri, case .showing(let summary) = nowPlayingState else { return false }
+        return summary.trackURI == uri
+    }
+
+    /// Shows what the desktop app reported: updates play state and position in place for the
+    /// current track, or replaces the summary (without artwork or device) for a new one.
+    private func showLocalPlayback(_ event: SpotifyPlayerEvent, at now: Date) {
+        if case .showing(let summary) = nowPlayingState, isShowingTrack(event.trackURI) {
             nowPlayingState = .showing(summary.with(
                 isPlaying: event.state == .playing,
                 progressMs: event.positionMs ?? summary.progressMs(at: now),
                 sampledAt: now
             ))
-        } else if isPresented {
-            refreshNowPlaying()
-        } else if event.state == .stopped {
-            nowPlayingState = .hidden
         } else if let title = event.title {
             nowPlayingState = .showing(NowPlayingSummary(
                 trackURI: event.trackURI,
@@ -648,6 +702,35 @@ final class SearchViewModel: ObservableObject {
         }
     }
 
+    enum NowPlayingReconciliation: Equatable {
+        case accept(NowPlayingSummary?)
+        /// The API hasn't caught up with what the local Spotify app just broadcast.
+        case stale
+    }
+
+    /// Checks a Web API read against a recent local broadcast. A different track means the API
+    /// is behind; the same track with a different play state keeps the broadcast's state.
+    nonisolated static func reconcile(
+        _ fetched: NowPlayingSummary?,
+        withLocalEvent local: LocalPlayerEvent?,
+        now: Date
+    ) -> NowPlayingReconciliation {
+        guard let local,
+              now.timeIntervalSince(local.receivedAt) < localEventTrustWindow,
+              local.event.state != .stopped,
+              let localURI = local.event.trackURI
+        else { return .accept(fetched) }
+
+        guard let fetched, fetched.trackURI == localURI else { return .stale }
+
+        let localIsPlaying = local.event.state == .playing
+        guard fetched.isPlaying != localIsPlaying else { return .accept(fetched) }
+
+        let elapsedMs = localIsPlaying ? max(0, Int(now.timeIntervalSince(local.receivedAt) * 1_000)) : 0
+        let position = local.event.positionMs.map { $0 + elapsedMs } ?? fetched.progressMs(at: now)
+        return .accept(fetched.with(isPlaying: localIsPlaying, progressMs: position, sampledAt: now))
+    }
+
     func refreshQueueAfterPlaybackChange() {
         if activeMode == .queue || queueState.hasLoadedContent {
             fetchQueue(force: true)
@@ -655,10 +738,14 @@ final class SearchViewModel: ObservableObject {
     }
 
     func clearNowPlaying() {
+        cancelNowPlayingRefresh()
+        nowPlayingState = .hidden
+    }
+
+    private func cancelNowPlayingRefresh() {
         nowPlayingTask?.cancel()
         nowPlayingRefreshID = UUID()
         nowPlayingRefreshInProgress = false
-        nowPlayingState = .hidden
     }
 
     // MARK: Search results

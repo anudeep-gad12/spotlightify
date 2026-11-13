@@ -266,6 +266,69 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(model.nowPlayingState, .hidden)
     }
 
+    @MainActor
+    func testPlayerEventForNewTrackWhileOpenShowsBroadcastImmediately() {
+        let model = makeViewModel()
+        model.setPresented(true)
+        model.showNowPlayingForTesting(makeSummary(progressMs: 10_000, isPlaying: true))
+
+        model.applyPlayerEvent(SpotifyPlayerEvent(
+            state: .playing,
+            trackURI: "spotify:track:next",
+            title: "Next Song",
+            artist: "Other Artist",
+            positionMs: 0,
+            durationMs: 150_000
+        ))
+
+        guard case .showing(let updated) = model.nowPlayingState else {
+            return XCTFail("Expected now playing")
+        }
+        XCTAssertEqual(updated.trackURI, "spotify:track:next", "An open panel must not wait on the Web API to show a new track")
+        XCTAssertEqual(updated.title, "Next Song")
+    }
+
+    func testReconcileTreatsDifferentTrackFromAPIAsStale() {
+        let now = Date()
+        let local = LocalPlayerEvent(
+            event: SpotifyPlayerEvent(
+                state: .playing, trackURI: "spotify:track:next", title: "Next", artist: "A",
+                positionMs: 0, durationMs: 150_000
+            ),
+            receivedAt: now.addingTimeInterval(-1)
+        )
+        let staleRead = makeSummary(progressMs: 199_000, isPlaying: true)
+
+        XCTAssertEqual(SearchViewModel.reconcile(staleRead, withLocalEvent: local, now: now), .stale)
+        XCTAssertEqual(SearchViewModel.reconcile(nil, withLocalEvent: local, now: now), .stale)
+
+        let expired = now.addingTimeInterval(SearchViewModel.localEventTrustWindow + 1)
+        XCTAssertEqual(SearchViewModel.reconcile(staleRead, withLocalEvent: local, now: expired), .accept(staleRead))
+        XCTAssertEqual(SearchViewModel.reconcile(staleRead, withLocalEvent: nil, now: now), .accept(staleRead))
+    }
+
+    func testReconcileKeepsLocalPlayStateForSameTrack() {
+        let now = Date()
+        let local = LocalPlayerEvent(
+            event: SpotifyPlayerEvent(
+                state: .paused, trackURI: "spotify:track:now", title: "Now", artist: "Artist",
+                positionMs: 42_000, durationMs: 200_000
+            ),
+            receivedAt: now.addingTimeInterval(-1)
+        )
+        let lagging = makeSummary(progressMs: 41_000, isPlaying: true)
+
+        guard case .accept(let merged?) = SearchViewModel.reconcile(lagging, withLocalEvent: local, now: now) else {
+            return XCTFail("Expected a merged summary")
+        }
+        XCTAssertFalse(merged.isPlaying)
+        XCTAssertEqual(merged.progressMs(at: now.addingTimeInterval(10)), 42_000)
+        XCTAssertEqual(merged.deviceName, "Mac", "API-only fields should still come through")
+
+        let agreeing = makeSummary(progressMs: 42_000, isPlaying: false)
+        XCTAssertEqual(SearchViewModel.reconcile(agreeing, withLocalEvent: local, now: now), .accept(agreeing))
+    }
+
     // MARK: Helpers
 
     @MainActor
